@@ -1,82 +1,146 @@
-import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
-import Login from "@/views/Login.vue";
-import Register from "@/views/Register.vue";
-import { useAuthStore } from "@/stores/authStore";
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
+
+import HomeView from '../views/HomeView.vue'
+import Login from '@/views/Login.vue'
+import Register from '@/views/Register.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+
   routes: [
+
     {
-      path: "/login",
-      name: "login",
+      path: '/login',
+      name: 'login',
       component: Login,
+      meta: { guest: true }
     },
+
     {
-      path: "/register",
-      name: "register",
+      path: '/register',
+      name: 'register',
       component: Register,
-    },
-    // RUTAS PÚBLICAS
-    // ruta para componente order - interfaz publica
-    {
-      path: "/order",
-      name: "Order",
-      component: () => import("@/views/OrderView.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/",
-      name: "home",
-      component: HomeView,
+      meta: { guest: true }
     },
 
     {
-      path: "/categoria/:slug",
-      name: "categoria",
-      component: () => import("@/views/CategoryView.vue"),
+      path: '/',
+      name: 'home',
+      component: HomeView
     },
+
     {
-      path: "/mis-ordenes",
-      name: "mis-ordenes",
-      component: () => import("@/views/MisOrdenes.vue"),
-      meta: { requiresAuth: true },
+      path: '/order',
+      name: 'order',
+      component: () => import('@/views/OrderView.vue'),
+      meta: { requiresAuth: true, role: 'CLIENTE' }
     },
+
     {
-      path: "/about",
-      name: "about",
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import("../views/AboutView.vue"),
+      path: '/mis-ordenes',
+      name: 'mis-ordenes',
+      component: () => import('@/views/MisOrdenes.vue'),
+      meta: { requiresAuth: true, role: 'CLIENTE' }
     },
-  ],
-});
 
-//para proteger las rutas privadas, se utiliza un guardia de navegación global
-router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
+    // ADMIN PANEL
+    {
+      path:'/admin',
+      component: () => import('@/components/layouts/AdminLayout.vue'),
+      meta:{ requiresAuth:true, role:['ADMIN','VENDEDOR'] },
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next("/login");
-    return;
-  }
+      children:[
 
-  if (to.meta.role) {
-    const hasRole = authStore.user?.roles?.some((r) => r.name === to.meta.role);
+        {
+          path:'dashboard',
+          name:'admin-dashboard',
+          component: () => import('@/views/admin/Dashboard.vue')
+        },
 
-    if (!hasRole) {
-      next("/");
-      return;
+        {
+          path:'catalogos',
+          name:'admin-catalogos',
+          component: () => import('@/views/admin/Catalogos.vue')
+        },
+        
+        {
+          path:'catalogos/categorias',
+          name:'admin-categorias',
+          component: () => import('@/views/admin/Categorias.vue')
+        },
+        
+
+        {
+          path:'productos',
+          name:'admin-productos',
+          component: () => import('@/views/admin/Productos.vue')
+        },
+
+        {
+          path:'ordenes',
+          name:'admin-ordenes',
+          component: () => import('@/views/admin/Ordenes.vue')
+        },
+
+        {
+          path:'usuarios',
+          name:'admin-usuarios',
+          component: () => import('@/views/admin/Usuarios.vue')
+        },
+
+        {
+          path:'reportes',
+          name:'admin-reportes',
+          component: () => import('@/views/admin/Reportes.vue')
+        }
+
+      ]
     }
+
+  ]
+})
+
+
+//para proteger las rutas
+router.beforeEach((to) => {
+
+  const authStore = useAuthStore()
+
+  // requiere login
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return '/login'
   }
 
+  // validación de roles
+  if (to.meta.role) {
+
+    const userRoles = authStore.user?.roles?.map(r => r.name) || []
+
+    // si la ruta acepta varios roles
+    if (Array.isArray(to.meta.role)) {
+
+      const hasRole = to.meta.role.some(role => userRoles.includes(role))
+
+      if (!hasRole) return '/'
+
+    } 
+    // si la ruta acepta un solo rol
+    else {
+
+      if (!userRoles.includes(to.meta.role)) {
+        return '/'
+      }
+
+    }
+
+  }
+
+  // rutas solo invitados
   if (to.meta.guest && authStore.isAuthenticated) {
-    next("/");
-    return;
+    return '/'
   }
 
-  next();
-});
+})
 
-export default router;
+export default router
