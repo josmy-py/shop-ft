@@ -1,5 +1,6 @@
 <template>
     <div>
+        <toast/>
         <div class="card">
             <Toolbar class="mb-4">
                 <template #start>
@@ -43,7 +44,7 @@
             
             <template #footer>
                 <Button label="Cancelar" icon="pi pi-times" text @click="hideDialog"/>
-                <Button :label="labelButton" security="primary" icon="pi pi-check" text @click="saveOrUpdate" />
+                <Button :label="labelButton" security="primary" icon="pi pi-save" text @click="saveOrUpdate" />
             </template>
         </Dialog>
 
@@ -65,6 +66,7 @@ import { ref, onMounted, computed } from 'vue';
 import { FilterMatchMode } from 'primevue/api';
 import { useToast } from 'primevue/usetoast';
 import api from '@/services/api';
+import { i } from 'vite/dist/node/chunks/moduleRunnerTransport';
 
 onMounted(() => {
     loadCategorias()
@@ -105,19 +107,35 @@ const loadCategorias = async () =>{
     }
 }
 
-const saveOrUpdate = () => {
+const saveOrUpdate = async () => {
     submitted.value = true;
-
-    if (categoria?.value.nombre?.trim()) {
-        if (categoria.value.id) {
-            //petición para actualizar la categoría
+    if(!categoria.value.nombre.trim()){
+        return;
+    }
+    try{
+        let response;
+        if(categoria.value.id){
+          //se va actualizar la categoria
+          response = await api.put(`/categorias/${categoria.value.id}`, categoria.value);
+          if(response.status === 202){
+            const catUpdate = response.data.categoria;
+            //odtener el indice del producto actualizado
+            const index = categorias.value.findIndex(cat => cat.id === catUpdate.id);
+            if(index !== -1){
+                categorias.value[index] = catUpdate;
+            }
+          }
+        }else{
+          //se va crear nueva categoria
         }
-        else {
-            //petición para registrar nueva categoría
-        }
-
-        dialog.value = false;
-        categoria.value = {};
+        toast.add({
+          severity:'success',
+          summary: 'Opercion exitosa', 
+          detail: response.data.message,
+          life: 3000});
+        dialog.value = {};
+    }catch(err){
+  
     }
 };
 const editCategoria = (cat) => {
