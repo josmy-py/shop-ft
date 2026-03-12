@@ -1,6 +1,6 @@
 <template>
   <div>
-    <toast />
+    <Toast />
     <div class="card">
       <Toolbar class="mb-4">
         <template #start>
@@ -52,7 +52,7 @@
     <Dialog v-model:visible="deleteCategoriaDialog" :style="{ width: '450px' }" header="Confirmación" :modal="true">
       <div class="confirmation-content">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
-        <span v-if="product">Seguro/a de eliminar la categoría <b>{{ categoria.nombre }}</b>?</span>
+        <span v-if="categoria">Seguro/a de eliminar la categoría <b>{{ categoria.nombre }}</b>?</span>
       </div>
       <template #footer>
         <Button label="No" icon="pi pi-times" text @click="deleteCategoriaDialog = false" />
@@ -67,7 +67,7 @@ import { ref, onMounted, computed } from 'vue';
 import { FilterMatchMode } from 'primevue/api';
 import { useToast } from 'primevue/usetoast';
 import api from '@/services/api';
-import { i } from 'vite/dist/node/chunks/moduleRunnerTransport';
+
 
 onMounted(() => {
   loadCategorias()
@@ -176,20 +176,54 @@ const confirmDeleteCategoria = (cat) => {
   categoria.value = cat;
   deleteCategoriaDialog.value = true;
 };
-const deleteCategoria = () => {
-  categorias.value = categorias.value.filter(val => val.id !== categoria.value.id);
-  deleteCategoriaDialog.value = false;
-  categoria.value = {};
-  toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Deleted', life: 3000 });
+const deleteCategoria = async () => {
+
+    try {
+        const response = await api.delete(`/categorias/${categoria.value.id}`);
+        const { status, data } = response;
+
+        if (status === 200) {
+            categorias.value = categorias.value.filter(val => val.id !== categoria.value.id);
+            toast.add({
+                severity: 'success',
+                summary: 'Eliminado',
+                detail: data.message,
+                life: 3000
+            });
+
+        }
+        deleteCategoriaDialog.value = false;
+        categoria.value = {};
+
+    } catch (error) {
+        let message = "Error inesperado";
+        if (error.response?.status === 409) {
+            message = error.response.data.message;
+        }
+        else if (error.response?.status === 404) {
+            message = error.response.data.message;
+        }
+        else if (error.response?.data?.message) {
+            message = error.response.data.message;
+        }
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: message,
+            life: 4000
+        });
+        deleteCategoriaDialog.value = false;
+        console.error(error);
+    }
 };
 
 //funciones computables para determinar si esta agregando o etidando un registro
 const titleDialog = computed(() => {
-  return categoria.value.id ? "Edición de Categorías" : "Registro de Categorías"
+    return categoria.value.id ? "Edición de Categorías" : "Registro de Categorías"
 })
 
 const labelButton = computed(() => {
-  return categoria.value.id ? "Actualizar" : "Guardar"
+    return categoria.value.id ? "Actualizar" : "Guardar"
 })
 
 </script>

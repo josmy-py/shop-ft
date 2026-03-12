@@ -14,6 +14,10 @@ import Toolbar from 'primevue/toolbar';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Card from 'primevue/card';
+import Textarea from 'primevue/textarea'; 
+import InputNumber from 'primevue/inputnumber';
+import Dropdown from 'primevue/dropdown';
+import FileUpload from 'primevue/fileupload';
 
 
 export default function setupPrimeVue(app){
@@ -32,4 +36,8 @@ export default function setupPrimeVue(app){
     app.component('Toast', Toast)
     app.component('ConfirmDialog', ConfirmDialog)
     app.component('Card', Card)
+    app.component('Textarea', Textarea)
+    app.component('InputNumber', InputNumber)
+    app.component('Dropdown', Dropdown)
+    app.component('FileUpload', FileUpload)
 }
