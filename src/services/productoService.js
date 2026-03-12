@@ -15,7 +15,7 @@ export default {
     },
 
     update(id, formData){
-        return api.put(`/productos/${id}`, formData, {
+        return api.post(`/productos/${id}?_method=PUT`, formData, {
             headers:{
                 "Content-Type":"multipart/form-data"
             }
@@ -24,6 +24,10 @@ export default {
 
     delete(id){
         return api.delete(`/productos/${id}`);
-    }
+    },
+    //método agregado para activar/desactivar
+    toggleActivo(id){
+        return api.patch(`/productos/${id}/toggle-activo`)
+    },
 
 }

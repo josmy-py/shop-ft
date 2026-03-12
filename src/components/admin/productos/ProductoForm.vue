@@ -1,35 +1,33 @@
 <template>
-  <Dialog
-    v-model:visible="dialogVisible"
-    header="Producto"
-    :style="{ width: '600px' }"
-  >
+  <Dialog v-model:visible="dialogVisible" :header="titleDialog" :style="{ width: '600px' }">
     <div class="p-fluid grid">
       <div class="col-12">
+        <label class="form-label">Nombre</label>
         <InputText v-model="producto.nombre" placeholder="Nombre" />
       </div>
 
-      <div class="col-12">
-        <Textarea
-          v-model="producto.descripcion"
-          rows="3"
-          placeholder="Descripción"
-        />
+      <div class="col-12 mt-2">
+        <label class="form-label">Descripción</label>
+        <Textarea v-model="producto.descripcion" rows="3" placeholder="Descripción" />
       </div>
 
       <div class="col-6">
+        <label class="form-label">Modelo</label>
         <InputText v-model="producto.modelo" placeholder="Modelo" />
       </div>
 
-      <div class="col-6">
+      <div class="col-6 mt-2">
+        <label class="form-label">Precio</label>
         <InputNumber v-model="producto.precio" placeholder="Precio" />
       </div>
 
-      <div class="col-6">
+      <div class="col-6 mt-2">
+        <label class="form-label">Stock</label>
         <InputNumber v-model="producto.stock" placeholder="Stock" />
       </div>
 
-      <div class="col-6">
+      <div class="col-6 mt-2">
+        <label class="form-label">Estado</label>
         <Dropdown
           v-model="producto.activo"
           :options="estados"
@@ -39,7 +37,8 @@
         />
       </div>
 
-      <div class="col-6">
+      <div class="col-6 mt-2">
+        <label class="form-label">Marca</label>
         <Dropdown
           v-model="producto.marca"
           :options="marcas"
@@ -48,7 +47,8 @@
         />
       </div>
 
-      <div class="col-6">
+      <div class="col-6 mt-2">
+        <label class="form-label">Categoría</label>
         <Dropdown
           v-model="producto.categoria"
           :options="categorias"
@@ -60,13 +60,7 @@
 
     <h4 class="mt-4">Imágenes</h4>
 
-    <FileUpload
-      multiple
-      customUpload
-      mode="basic"
-      accept="image/*"
-      @select="onSelect"
-    />
+    <FileUpload multiple customUpload mode="basic" accept="image/*" @select="onSelect" />
 
     <div class="flex gap-3 mt-3">
       <img
@@ -78,14 +72,9 @@
     </div>
 
     <template #footer>
-      <Button
-        label="Cancelar"
-        icon="pi pi-times"
-        severity="secondary"
-        @click="close"
-      />
+      <Button label="Cancelar" icon="pi pi-times" severity="secondary" @click="close" />
 
-      <Button label="Guardar" icon="pi pi-check" @click="submit" />
+      <Button :label="labelButton" icon="pi pi-check" @click="submit" />
     </template>
   </Dialog>
 </template>
@@ -96,7 +85,7 @@ import { ref, watch, onMounted, computed } from "vue";
 import categoriaService from "@/services/categoriaService";
 import marcaService from "@/services/marcaService";
 
-const BASE_IMAGE_URL = "http://localhost:8000/storage/productos/"
+const BASE_IMAGE_URL = "http://localhost:8000/images/productos/";
 
 const props = defineProps({
   visible: Boolean,
@@ -105,9 +94,19 @@ const props = defineProps({
 
 const emit = defineEmits(["update:visible", "guardar"]);
 
+//propiedades computables
 const dialogVisible = computed({
   get: () => props.visible,
   set: (val) => emit("update:visible", val),
+});
+
+//funciones computables para determinar si esta agregando o etidando un registro
+const titleDialog = computed(() => {
+  return producto.value.id ? "Edición de Productos" : "Registro de Productos";
+});
+
+const labelButton = computed(() => {
+  return producto.value.id ? "Actualizar" : "Guardar";
 });
 
 const producto = ref({});
@@ -116,27 +115,23 @@ const marcas = ref([]);
 const preview = ref([]);
 const imagenes = ref([]);
 
-
 const estados = [
   { label: "Activo", value: 1 },
   { label: "Inactivo", value: 0 },
 ];
 
 const loadPreviewImages = (producto) => {
-    preview.value = []
-    if (producto?.imagenes) {
-        producto.imagenes.forEach(img => {
-            preview.value.push({
-                id: img.id,
-                url: BASE_IMAGE_URL + img.nombre,
-                existente: true
-            })
-
-        })
-
-    }
-
-}
+  preview.value = [];
+  if (producto?.imagenes) {
+    producto.imagenes.forEach((img) => {
+      preview.value.push({
+        id: img.id,
+        url: BASE_IMAGE_URL + img.nombre,
+        existente: true,
+      });
+    });
+  }
+};
 watch(
   () => props.producto,
   (v) => {
@@ -150,12 +145,12 @@ watch(
     producto.value = {
       ...v,
       precio: v.precio != null ? Number(v.precio) : null,
-      stock: v.stock != null ? Number(v.stock) : null
+      stock: v.stock != null ? Number(v.stock) : null,
     };
 
     loadPreviewImages(v);
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const loadData = async () => {
@@ -169,18 +164,14 @@ const loadData = async () => {
 onMounted(loadData);
 
 const onSelect = (e) => {
+  e.files.forEach((file) => {
+    imagenes.value.push(file);
 
-    e.files.forEach(file => {
-
-        imagenes.value.push(file)
-
-        preview.value.push({
-            url: URL.createObjectURL(file),
-            existente: false
-        })
-
-    })
-
+    preview.value.push({
+      url: URL.createObjectURL(file),
+      existente: false,
+    });
+  });
 };
 
 const close = () => emit("update:visible", false);
@@ -197,3 +188,28 @@ const submit = () => {
   emit("guardar", formData, producto.value.id);
 };
 </script>
+
+<style scoped>
+.form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.imagenes-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.preview-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+</style>

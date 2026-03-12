@@ -5,6 +5,8 @@
 
     <ProductoTable
       :productos="productos"
+      :marcas="marcas"
+      @toggle="toggleActivo"
       @nuevo="openNew"
       @editar="editProducto"
       @eliminar="confirmDelete"
@@ -24,6 +26,7 @@ import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
 
 import productoService from "@/services/productoService";
+import marcaService from "@/services/marcaService";
 
 import ProductoTable from "@/components/admin/productos/ProductoTable.vue";
 import ProductoForm from "@/components/admin/productos/ProductoForm.vue";
@@ -34,13 +37,23 @@ const confirm = useConfirm();
 const productos = ref([]);
 const productoDialog = ref(false);
 const producto = ref({});
+const marcas = ref([]);
 
 const loadProductos = async () => {
   const res = await productoService.getAll();
   productos.value = res.data;
 };
 
-onMounted(loadProductos);
+const loadMarcas = async () => {
+  const response = await marcaService.getAll();
+  marcas.value = response.data;
+};
+
+const loadData = () => {
+  loadMarcas();
+  loadProductos();
+};
+onMounted(loadData);
 
 const openNew = () => {
   producto.value = {};
@@ -104,22 +117,73 @@ const guardarProducto = async (formData, id) => {
 
 const confirmDelete = (p) => {
   confirm.require({
-    message: `¿Eliminar ${p.nombre}?`,
+    message: `¿Eliminar el producto ${p.nombre}?`,
     header: "Confirmar",
     icon: "pi pi-info-circle",
 
     accept: async () => {
-      const res = await productoService.delete(p.id);
-
-      toast.add({
-        severity: "success",
-        summary: "Eliminado",
-        detail: res.data.message,
-        life: 3000,
-      });
-
-      loadProductos();
+      try {
+        const res = await productoService.delete(p.id);
+        toast.add({
+          severity: "success",
+          summary: "Eliminado",
+          detail: res.data.message,
+          life: 3000,
+        });
+        loadProductos();
+      } catch (error) {
+        if (error.response) {
+          const data = error.response.data;
+          // capturando errores de validación
+          if (data.errors) {
+            Object.values(data.errors).forEach((err) => {
+              toast.add({
+                severity: "warn",
+                summary: "Validación",
+                detail: err[0],
+                life: 4000,
+              });
+            });
+          } else {
+            toast.add({
+              severity: "warn",
+              summary: "Aviso",
+              detail: data.message,
+              life: 4000,
+            });
+          }
+        } else {
+          toast.add({
+            severity: "error",
+            summary: "Error",
+            detail: "No se pudo conectar con el servidor",
+            life: 4000,
+          });
+        }
+      }
     },
   });
+};
+
+//función para activar/desactivar
+const toggleActivo = async (producto) => {
+  try {
+    const res = await productoService.toggleActivo(producto.id);
+
+    toast.add({
+      severity: "success",
+      summary: "Estado actualizado",
+      detail: res.data.message,
+      life: 3000,
+    });
+    loadProductos();
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.response?.data?.message || "Error del servidor",
+      life: 4000,
+    });
+  }
 };
 </script>
